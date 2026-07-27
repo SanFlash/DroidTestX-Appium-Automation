@@ -1,0 +1,16 @@
+{
+    "standard_user": {
+        "username": "bob@example.com",
+        "password": "10203040"
+    },
+
+    "locked_user": {
+        "username": "alice@example.com",
+        "password": "10203040"
+    },
+
+    "invalid_user": {
+        "username": "invalid@example.com",
+        "password": "wrong-password"
+    }
+}

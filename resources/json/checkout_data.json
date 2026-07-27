@@ -1,0 +1,23 @@
+{
+    "user": {
+        "username": "bob@example.com",
+        "password": "10203040"
+    },
+
+    "shipping": {
+        "full_name": "Rebecca Winter",
+        "address1": "Mandorley 112",
+        "address2": "Entrance 1",
+        "city": "Truro",
+        "state": "Cornwall",
+        "zip_code": "89750",
+        "country": "United Kingdom"
+    },
+
+    "payment": {
+        "full_name": "Rebecca Winter",
+        "card_number": "3258 1265 7568 789",
+        "expiration": "03/25",
+        "security_code": "123"
+    }
+}

@@ -1,0 +1,26 @@
+environment: QA
+
+appium:
+  server_url: "http://127.0.0.1:4723"
+  connection_timeout: 30
+
+device:
+  platform_name: "Android"
+  automation_name: "UiAutomator2"
+  device_name: "Android Real Device"
+  udid: "X8E6BQOVMJORTG89"
+
+application:
+  package: "com.saucelabs.mydemoapp.rn"
+  activity: "com.saucelabs.mydemoapp.rn.MainActivity"
+
+capabilities:
+  no_reset: true
+  full_reset: false
+  auto_grant_permissions: true
+  new_command_timeout: 300
+
+timeouts:
+  explicit_wait: 15
+  short_wait: 5
+  long_wait: 30
