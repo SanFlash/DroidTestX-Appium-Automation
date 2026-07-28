@@ -90,71 +90,108 @@ My Demo App
 The project follows the **Page Object Model (POM)**.
 
 ```text
-AndroidAutomationFramework/
+DroidTestX-Appium-Automation/
 │
-├── config/
-│   ├── __init__.py
-│   └── config.py
+├── app/
+│   ├── components/
+│   │   ├── __init__.py
+│   │   └── menu_component.py
+│   │
+│   ├── flows/
+│   │   ├── __init__.py
+│   │   ├── checkout_flow.py
+│   │   └── login_flow.py
+│   │
+│   ├── locators/
+│   │   ├── __init__.py
+│   │   ├── cart_locators.py
+│   │   ├── checkout_address_locators.py
+│   │   ├── checkout_locators.py
+│   │   ├── checkout_payment_locators.py
+│   │   ├── common_locators.py
+│   │   ├── login_locators.py
+│   │   ├── menu_locators.py
+│   │   ├── product_details_locators.py
+│   │   ├── products_locators.py
+│   │   └── review_order_locators.py
+│   │
+│   ├── pages/
+│   │   ├── __init__.py
+│   │   ├── cart_page.py
+│   │   ├── checkout_address_page.py
+│   │   ├── checkout_page.py
+│   │   ├── checkout_payment_page.py
+│   │   ├── login_page.py
+│   │   ├── order_confirmation_page.py
+│   │   ├── product_details_page.py
+│   │   ├── products_page.py
+│   │   └── review_order_page.py
+│   │
+│   └── __init__.py
 │
 ├── core/
+│   ├── adb/
+│   │   └── adb_utils.py
+│   │
+│   ├── config/
+│   │   ├── capabilities.py
+│   │   └── config_manager.py
+│   │
+│   ├── driver/
+│   │   ├── base_driver.py
+│   │   └── driver_factory.py
+│   │
+│   ├── exceptions/
+│   │   └── framework_exceptions.py
+│   │
+│   ├── gestures/
+│   │   └── gesture_utils.py
+│   │
+│   ├── logging/
+│   │   └── logger.py
+│   │
+│   ├── reporting/
+|   |   └── screenshot_manager.py
+│   │
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   └── json_reader.py
+│   │
+│   ├── waits/
+│   │   └── wait_utils.py
+│   │
 │   ├── __init__.py
-│   ├── driver_factory.py
 │   └── base_page.py
 │
-├── locators/
-│   ├── __init__.py
-│   ├── products_locators.py
-│   ├── product_details_locators.py
-│   ├── cart_locators.py
-│   ├── login_locators.py
-│   ├── shipping_locators.py
-│   ├── payment_locators.py
-│   ├── review_order_locators.py
-│   └── confirmation_locators.py
+├── logs/
+|   └── automation.log
 │
-├── pages/
-│   ├── __init__.py
-│   ├── products_page.py
-│   ├── product_details_page.py
-│   ├── cart_page.py
-│   ├── login_page.py
-│   ├── shipping_page.py
-│   ├── payment_page.py
-│   ├── review_order_page.py
-│   └── confirmation_page.py
+├── resources/
+│   ├── env/
+│   │   └── config.yaml
+│   │
+│   └── json/
+│       ├── checkout_data.json
+│       └── users.json
 │
 ├── tests/
-│   ├── smoke/
-│   │   ├── test_products.py
-│   │   ├── test_product_details.py
-│   │   ├── test_cart.py
-│   │   └── test_checkout.py
+│   ├── e2e/
+│   │   └── test_complete_purchase_flow.py
 │   │
-│   ├── regression/
-│   │   ├── test_login.py
-│   │   ├── test_shipping.py
-│   │   ├── test_payment.py
-│   │   └── test_purchase_flow.py
+│   ├── login/
+│   │   └── test_login.py
 │   │
-│   └── e2e/
-│       └── test_complete_purchase.py
+│   └── smoke/
+│       ├── test_app_launch.py
+│       ├── test_cart.py
+│       ├── test_product_details.py
+│       └── test_products.py
 │
-├── utils/
-│   ├── __init__.py
-│   ├── waits.py
-│   ├── gestures.py
-│   ├── screenshots.py
-│   └── logger.py
-│
-├── reports/
-│
-├── screenshots/
-│
+├── README.md
 ├── conftest.py
 ├── pytest.ini
 ├── requirements.txt
-├── .gitignore
-└── README.md
+└── run.py
 ```
 
 ---
