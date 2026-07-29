@@ -1,0 +1,108 @@
+name: Android Automation CI
+
+on:
+    push:
+        branches:
+            - main
+            - master
+            - develop
+            - feature/**
+    pull_request:
+        branches:
+            - main
+            - master
+            - develop
+
+permissions:
+    contents: read
+
+jobs:
+    qa-automation:
+        runs-on: ubuntu-latest
+
+        timeout-minutes: 30
+
+        env:
+            PYTHONUNBUFFERED: "1"
+
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.11"
+                  cache: "pip"
+
+            - name: Upgrade pip
+              run: |
+                  python -m pip install --upgrade pip
+
+            - name: Install Dependencies
+              run: |
+                  pip install -r requirements.txt
+
+            - name: Verify Pytest Installation
+              run: |
+                  pytest --version
+
+            - name: Validate Test Collection
+              run: |
+                  pytest --collect-only
+
+            #
+            # GitHub hosted runners DO NOT have
+            # Android Emulator + Appium + Real Device.
+            #
+            # Execute only framework verification tests.
+            #
+            - name: Run Smoke Tests
+              continue-on-error: true
+              run: |
+                  pytest -m smoke \
+                  -v \
+                  --tb=short \
+                  --html=reports/report.html \
+                  --self-contained-html
+
+            #
+            # Uncomment when using BrowserStack,
+            # Sauce Labs or Self-hosted Runner.
+            #
+            # - name: Run Full Regression
+            #   run: |
+            #     pytest -m regression -v
+            #
+            # - name: Run E2E
+            #   run: |
+            #     pytest -m e2e -v
+
+            - name: Upload HTML Report
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: pytest-report
+                  path: reports/
+
+            - name: Upload Screenshots
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: screenshots
+                  path: screenshots/
+
+            - name: Upload Logs
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: logs
+                  path: logs/
+
+            - name: Upload Allure Results
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: allure-results
+                  path: allure-results/
+                  if-no-files-found: ignore
