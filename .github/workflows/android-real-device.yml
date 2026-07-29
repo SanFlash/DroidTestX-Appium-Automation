@@ -10,8 +10,10 @@ on:
 jobs:
   android:
     runs-on: self-hosted
-
     timeout-minutes: 90
+
+    env:
+      PYTHON_HOME: C:\action-runner\_work\_tool\Python\3.11.9\x64
 
     defaults:
       run:
@@ -21,14 +23,20 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Configure Python 3.11
+        shell: powershell
+        run: |
+          "$env:PYTHON_HOME" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$env:PYTHON_HOME\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Verify Python
         run: |
-          echo ===============================
+          echo ================================
           echo Python Information
-          echo ===============================
+          echo ================================
           python --version
           where python
-          pip --version
+          python -m pip --version
 
       - name: Upgrade Pip
         run: |
@@ -36,7 +44,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install -r requirements.txt
+          python -m pip install -r requirements.txt
 
       - name: Verify Java
         run: |
@@ -47,9 +55,49 @@ jobs:
           adb version
           adb devices
 
+      - name: Verify Connected Device
+        shell: powershell
+        run: |
+          $devices = adb devices | Select-String "device$"
+
+          if ($devices.Count -eq 0) {
+            Write-Error "No Android device connected."
+            exit 1
+          }
+
+          Write-Host "Android device detected."
+
       - name: Verify Appium
         run: |
           appium --version
+
+      - name: Start Appium Server
+        shell: powershell
+        run: |
+          Start-Process appium -ArgumentList "--address","127.0.0.1","--port","4723"
+
+      - name: Wait For Appium
+        shell: powershell
+        run: |
+          $maxRetries = 30
+
+          for ($i = 1; $i -le $maxRetries; $i++) {
+              try {
+                  $response = Invoke-WebRequest http://127.0.0.1:4723/status -UseBasicParsing
+
+                  if ($response.StatusCode -eq 200) {
+                      Write-Host "Appium Server Ready"
+                      exit 0
+                  }
+              }
+              catch {
+                  Write-Host "Waiting for Appium ($i/$maxRetries)..."
+              }
+
+              Start-Sleep -Seconds 2
+          }
+
+          throw "Appium failed to start."
 
       - name: Create Report Directories
         run: |
@@ -58,41 +106,13 @@ jobs:
           if not exist logs mkdir logs
           if not exist allure-results mkdir allure-results
 
-      - name: Start Appium Server
+      - name: Verify Pytest
         run: |
-          start "Appium Server" cmd /k appium --address 127.0.0.1 --port 4723
-
-      - name: Wait for Appium
-        shell: powershell
-        run: |
-          $maxRetries = 30
-          $retry = 0
-
-          while ($retry -lt $maxRetries) {
-            try {
-              $response = Invoke-WebRequest -Uri "http://127.0.0.1:4723/status" -UseBasicParsing
-              if ($response.StatusCode -eq 200) {
-                Write-Host "Appium Server is Ready."
-                exit 0
-              }
-            }
-            catch {
-              Write-Host "Waiting for Appium..."
-            }
-
-            Start-Sleep -Seconds 2
-            $retry++
-          }
-
-          throw "Appium server failed to start."
-
-      - name: Verify Connected Device
-        run: |
-          adb devices
+          python -m pytest --version
 
       - name: Execute Test Suite
         run: |
-          pytest -v --tb=short --html=reports/report.html --self-contained-html
+          python -m pytest -v --tb=short --html=reports/report.html --self-contained-html
 
       - name: Upload HTML Report
         if: always()
