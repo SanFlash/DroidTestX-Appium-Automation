@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 90
 
     env:
-       PYTHON_HOME: C:\action-runner\_work\_tool\Python\3.11.9\x64
+      PYTHON_HOME: C:\Users\satye\AppData\Local\Programs\Python\Python311
 
     defaults:
       run:
@@ -23,7 +23,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Configure Python 3.11
+      - name: Configure Python
         shell: powershell
         run: |
           "$env:PYTHON_HOME" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
@@ -34,17 +34,16 @@ jobs:
           echo ================================
           echo Python Information
           echo ================================
-          python --version
-          where python
-          python -m pip --version
+          "%PYTHON_HOME%\python.exe" --version
+          "%PYTHON_HOME%\python.exe" -m pip --version
 
-      - name: Upgrade Pip
+      - name: Upgrade pip
         run: |
-          python -m pip install --upgrade pip
+          "%PYTHON_HOME%\python.exe" -m pip install --upgrade pip
 
       - name: Install Dependencies
         run: |
-          python -m pip install -r requirements.txt
+          "%PYTHON_HOME%\python.exe" -m pip install -r requirements.txt
 
       - name: Verify Java
         run: |
@@ -61,8 +60,7 @@ jobs:
           $devices = adb devices | Select-String "device$"
 
           if ($devices.Count -eq 0) {
-            Write-Error "No Android device connected."
-            exit 1
+            throw "No Android device connected."
           }
 
           Write-Host "Android device detected."
@@ -71,7 +69,7 @@ jobs:
         run: |
           appium --version
 
-      - name: Start Appium Server
+      - name: Start Appium
         shell: powershell
         run: |
           Start-Process appium -ArgumentList "--address","127.0.0.1","--port","4723"
@@ -79,22 +77,16 @@ jobs:
       - name: Wait For Appium
         shell: powershell
         run: |
-          $maxRetries = 30
-
-          for ($i = 1; $i -le $maxRetries; $i++) {
-              try {
-                  $response = Invoke-WebRequest http://127.0.0.1:4723/status -UseBasicParsing
-
-                  if ($response.StatusCode -eq 200) {
-                      Write-Host "Appium Server Ready"
-                      exit 0
-                  }
-              }
-              catch {
-                  Write-Host "Waiting for Appium ($i/$maxRetries)..."
-              }
-
-              Start-Sleep -Seconds 2
+          for ($i=1; $i -le 30; $i++) {
+            try {
+              Invoke-WebRequest http://127.0.0.1:4723/status -UseBasicParsing | Out-Null
+              Write-Host "Appium Ready"
+              exit 0
+            }
+            catch {
+              Write-Host "Waiting... ($i/30)"
+              Start-Sleep 2
+            }
           }
 
           throw "Appium failed to start."
@@ -106,13 +98,13 @@ jobs:
           if not exist logs mkdir logs
           if not exist allure-results mkdir allure-results
 
-      - name: Verify Pytest
+      - name: Verify pytest
         run: |
-          python -m pytest --version
+          "%PYTHON_HOME%\python.exe" -m pytest --version
 
-      - name: Execute Test Suite
+      - name: Execute Tests
         run: |
-          python -m pytest -v --tb=short --html=reports/report.html --self-contained-html
+          "%PYTHON_HOME%\python.exe" -m pytest -v --tb=short --html=reports/report.html --self-contained-html
 
       - name: Upload HTML Report
         if: always()
@@ -120,7 +112,6 @@ jobs:
         with:
           name: HTML-Report
           path: reports/
-          if-no-files-found: ignore
 
       - name: Upload Screenshots
         if: always()
@@ -128,7 +119,6 @@ jobs:
         with:
           name: Screenshots
           path: screenshots/
-          if-no-files-found: ignore
 
       - name: Upload Logs
         if: always()
@@ -136,7 +126,6 @@ jobs:
         with:
           name: Logs
           path: logs/
-          if-no-files-found: ignore
 
       - name: Upload Allure Results
         if: always()
@@ -144,4 +133,3 @@ jobs:
         with:
           name: Allure-Results
           path: allure-results/
-          if-no-files-found: ignore
