@@ -14,6 +14,7 @@ jobs:
 
     env:
       PYTHON_HOME: C:\Users\satye\AppData\Local\Programs\Python\Python311
+      APPIUM_CMD: C:\Users\satye\AppData\Roaming\npm\appium.cmd
 
     defaults:
       run:
@@ -23,21 +24,22 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      ####################################################################
+      # Python
+      ####################################################################
+
       - name: Configure Python
         shell: powershell
         run: |
-          "$env:PYTHON_HOME" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "$env:PYTHON_HOME\Scripts" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$env:PYTHON_HOME" | Out-File $env:GITHUB_PATH -Encoding utf8 -Append
+          "$env:PYTHON_HOME\Scripts" | Out-File $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Verify Python
         run: |
-          echo ================================
-          echo Python Information
-          echo ================================
           "%PYTHON_HOME%\python.exe" --version
           "%PYTHON_HOME%\python.exe" -m pip --version
 
-      - name: Upgrade pip
+      - name: Upgrade Pip
         run: |
           "%PYTHON_HOME%\python.exe" -m pip install --upgrade pip
 
@@ -45,9 +47,21 @@ jobs:
         run: |
           "%PYTHON_HOME%\python.exe" -m pip install -r requirements.txt
 
+      ####################################################################
+      # Environment Verification
+      ####################################################################
+
       - name: Verify Java
+        run: java -version
+
+      - name: Verify Node
         run: |
-          java -version
+          node -v
+          npm -v
+
+      - name: Verify Appium
+        run: |
+          "%APPIUM_CMD%" --version
 
       - name: Verify ADB
         run: |
@@ -60,76 +74,140 @@ jobs:
           $devices = adb devices | Select-String "device$"
 
           if ($devices.Count -eq 0) {
-            throw "No Android device connected."
+              throw "No Android device connected."
           }
 
           Write-Host "Android device detected."
 
-      - name: Verify Appium
+      ####################################################################
+      # Appium
+      ####################################################################
+
+      - name: Create Log Directory
         run: |
-          appium --version
+          if not exist logs mkdir logs
 
       - name: Start Appium
         shell: powershell
         run: |
-          Start-Process appium -ArgumentList "--address","127.0.0.1","--port","4723"
+          $stdout = Join-Path $PWD "logs\appium.log"
+          $stderr = Join-Path $PWD "logs\appium-error.log"
+
+          $process = Start-Process `
+            -FilePath $env:APPIUM_CMD `
+            -ArgumentList "--address","127.0.0.1","--port","4723" `
+            -RedirectStandardOutput $stdout `
+            -RedirectStandardError $stderr `
+            -PassThru
+
+          Write-Host "Appium PID: $($process.Id)"
+          Start-Sleep -Seconds 5
+
+          if ($process.HasExited) {
+              Write-Host "Appium exited immediately."
+
+              if (Test-Path $stdout) {
+                  Write-Host "===== STDOUT ====="
+                  Get-Content $stdout
+              }
+
+              if (Test-Path $stderr) {
+                  Write-Host "===== STDERR ====="
+                  Get-Content $stderr
+              }
+
+              throw "Appium crashed."
+          }
 
       - name: Wait For Appium
         shell: powershell
         run: |
+          $url = "http://127.0.0.1:4723/status"
+
           for ($i=1; $i -le 30; $i++) {
-            try {
-              Invoke-WebRequest http://127.0.0.1:4723/status -UseBasicParsing | Out-Null
-              Write-Host "Appium Ready"
-              exit 0
-            }
-            catch {
-              Write-Host "Waiting... ($i/30)"
-              Start-Sleep 2
-            }
+
+              try {
+                  $response = Invoke-RestMethod $url
+
+                  if ($response) {
+                      Write-Host "Appium Ready"
+                      exit 0
+                  }
+              }
+              catch {
+                  Write-Host "Waiting for Appium ($i/30)..."
+                  Start-Sleep -Seconds 2
+              }
+          }
+
+          if (Test-Path "logs\appium.log") {
+              Get-Content "logs\appium.log"
+          }
+
+          if (Test-Path "logs\appium-error.log") {
+              Get-Content "logs\appium-error.log"
           }
 
           throw "Appium failed to start."
+
+      ####################################################################
+      # Reports
+      ####################################################################
 
       - name: Create Report Directories
         run: |
           if not exist reports mkdir reports
           if not exist screenshots mkdir screenshots
-          if not exist logs mkdir logs
           if not exist allure-results mkdir allure-results
 
-      - name: Verify pytest
+      ####################################################################
+      # Testing
+      ####################################################################
+
+      - name: Verify Pytest
         run: |
           "%PYTHON_HOME%\python.exe" -m pytest --version
 
       - name: Execute Tests
         run: |
-          "%PYTHON_HOME%\python.exe" -m pytest -v --tb=short --html=reports/report.html --self-contained-html
+          "%PYTHON_HOME%\python.exe" -m pytest ^
+          -v ^
+          --tb=short ^
+          --html=reports/report.html ^
+          --self-contained-html
+
+      ####################################################################
+      # Artifacts
+      ####################################################################
 
       - name: Upload HTML Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: HTML-Report
-          path: reports/
+          path: reports
+          if-no-files-found: ignore
 
       - name: Upload Screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Screenshots
-          path: screenshots/
-
-      - name: Upload Logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Logs
-          path: logs/
+          path: screenshots
+          if-no-files-found: ignore
 
       - name: Upload Allure Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Allure-Results
-          path: allure-results/
+          path: allure-results
+          if-no-files-found: ignore
+
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Logs
+          path: logs
+          if-no-files-found: ignore
